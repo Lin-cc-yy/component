@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科研专用番茄钟 (支持自定义)</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f5;
+            --card-bg: #ffffff;
+            --primary-green: #4f772d;
+            --primary-hover: #31572c;
+            --light-green: #ecf3ec;
+            --text-main: #333d29;
+            --text-muted: #90a185;
+            --border-color: rgba(144, 161, 133, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-main);
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(79, 119, 45, 0.05);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(144, 161, 133, 0.15);
+        }
+
+        .title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-green);
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .modes {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            background: var(--light-green);
+            border: none;
+            padding: 8px 6px;
+            border-radius: 8px;
+            color: var(--primary-green);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--primary-green);
+            color: white;
+        }
+
+        /* 自定义时间输入面板 */
+        .custom-panel {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: var(--light-green);
+            padding: 10px;
+            border-radius: 8px;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .custom-panel input {
+            width: 70px;
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        .custom-panel input:focus {
+            border-color: var(--primary-green);
+        }
+
+        .custom-panel span {
+            font-size: 0.85rem;
+            color: var(--primary-green);
+            font-weight: 500;
+        }
+
+        .custom-panel button {
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .custom-panel button:hover {
+            background: var(--primary-hover);
+        }
+
+        .timer-box {
+            position: relative;
+            margin: 25px 0;
+        }
+
+        .time-display {
+            font-size: 4.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+            line-height: 1;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: var(--light-green);
+            border-radius: 3px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 100%;
+            background: var(--primary-green);
+            transition: width 1s linear;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .control-btn {
+            padding: 12px 35px;
+            border-radius: 30px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #start-pause-btn {
+            background: var(--primary-green);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 119, 45, 0.2);
+        }
+
+        #start-pause-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        #reset-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(144, 161, 133, 0.4);
+        }
+
+        #reset-btn:hover {
+            background: var(--light-green);
+            color: var(--primary-green);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="title">🔬 ACADEMIC TIMER</div>
+        
+        <div class="modes">
+            <button class="mode-btn active" data-minutes="50">文献精读</button>
+            <button class="mode-btn" data-minutes="15">快速泛读</button>
+            <button class="mode-btn" data-minutes="5">学术休息</button>
+            <button class="mode-btn" id="custom-mode-btn">自定义</button>
+        </div>
+
+        <div class="custom-panel" id="custom-panel">
+            <input type="number" id="custom-input" min="1" max="999" value="25">
+            <span>分钟</span>
+            <button id="custom-confirm-btn">设定时间</button>
+        </div>
+
+        <div class="timer-box">
+            <div class="time-display" id="time-left">50:00</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="start-pause-btn">开始专注</button>
+            <button class="control-btn" id="reset-btn">重置</button>
+        </div>
+    </div>
+
+    <script>
+        let timer;
+        let timeLeft = 50 * 60; 
+        let totalTime = 50 * 60;
+        let isRunning = false;
+        let isCustomMode = false;
+        let customMinutes = 25; // 默认自定义时间
+
+        const timeDisplay = document.getElementById('time-left');
+        const startPauseBtn = document.getElementById('start-pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const progressBar = document.getElementById('progress');
+        const modeButtons = document.querySelectorAll('.mode-btn:not(#custom-mode-btn)');
+        const customModeBtn = document.getElementById('custom-mode-btn');
+        const customPanel = document.getElementById('custom-panel');
+        const customInput = document.getElementById('custom-input');
+        const customConfirmBtn = document.getElementById('custom-confirm-btn');
+
+        // 更新倒计时显示和进度条
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // 计算进度条百分比
+            const progressPercent = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
+            progressBar.style.width = `${progressPercent}%`;
+        }
+
+        // 纯代码合成提示音
+        function playAlertSound() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            function beep(freq, duration, startTime) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.3, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            }
+            const now = audioCtx.currentTime;
+            beep(523.25, 0.15, now);       
+            beep(659.25, 0.15, now + 0.15); 
+            beep(783.99, 0.3, now + 0.3);   
+        }
+
+        // 开关计时器
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timer);
+                startPauseBtn.textContent = '继续专注';
+                startPauseBtn.style.background = 'var(--primary-green)';
+                isRunning = false;
+            } else {
+                isRunning = true;
+                startPauseBtn.textContent = '暂停';
+                startPauseBtn.style.background = '#7a9e60';
+                
+                timer = setInterval(() => {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        updateDisplay();
+                    } else {
+                        clearInterval(timer);
+                        isRunning = false;
+                        playAlertSound();
+                        alert('当前科研周期完成，起立活动一下吧！');
+                        resetTimer();
+                    }
+                }, 1000);
+            }
+        }
+
+        // 重集计时器
+        function resetTimer() {
+            clearInterval(timer);
+            isRunning = false;
+            
+            if (isCustomMode) {
+                timeLeft = customMinutes * 60;
+                totalTime = customMinutes * 60;
+            } else {
+                const activeMode = document.querySelector('.mode-btn.active');
+                const minutes = parseInt(activeMode.getAttribute('data-minutes'));
+                timeLeft = minutes * 60;
+                totalTime = minutes * 60;
+            }
+            
+            startPauseBtn.textContent = '开始专注';
+            startPauseBtn.style.background = 'var(--primary-green)';
+            updateDisplay();
+        }
+
+        // 切换常规预设模式
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (isRunning && !confirm('正在专注中，确定要切换模式吗？')) return;
+                
+                // 恢复状态
+                modeButtons.forEach(btn => btn.classList.remove('active'));
+                customModeBtn.classList.remove('active');
+                button.classList.add('active');
+                customPanel.style.display = 'none';
+                isCustomMode = false;
+                
+                const minutes = parseInt(button.getAttribute('data-minutes'));
+                timeLeft = minutes * 60;
+                totalTime = minutes * 60;
+                
+                clearInterval(timer);
+                isRunning = false;
+                startPauseBtn.textContent = '开始专注';
+                startPauseBtn.style.background = 'var(--primary-green)';
+                updateDisplay();
+            });
+        });
+
+        // 点击“自定义”模式按钮
+        customModeBtn.addEventListener('click', () => {
+            if (isRunning && !confirm('正在专注中，确定要切换模式吗？')) return;
+            
+            modeButtons.forEach(btn => btn.classList.remove('active'));
+            customModeBtn.classList.add('active');
+            
+            // 展开输入面板
+            customPanel.style.display = 'flex';
+            isCustomMode = true;
+            
+            clearInterval(timer);
+            isRunning = false;
+            startPauseBtn.textContent = '开始专注';
+            startPauseBtn.style.background = 'var(--primary-green)';
+        });
+
+        // 确定自定义时间
+        customConfirmBtn.addEventListener('click', () => {
+            let value = parseInt(customInput.value);
+            if (isNaN(value) || value <= 0) {
+                alert('请输入有效的专注分钟数（大于0）');
+                return;
+            }
+            
+            customMinutes = value;
+            timeLeft = customMinutes * 60;
+            totalTime = customMinutes * 60;
+            
+            alert(`成功设定自定义专注时间：${customMinutes} 分钟`);
+            updateDisplay();
+        });
+
+        // 绑定主控制按钮
+        startPauseBtn.addEventListener('click', toggleTimer);
+        resetBtn.addEventListener('click', resetTimer);
+
+        // 初始化
+        updateDisplay();
+    </script>
+</body>
+</html>
