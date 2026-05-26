@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学术极简座钟</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f5;
+            --card-bg: #ffffff;
+            --primary-green: #4f772d;
+            --accent-green: #90a185;
+            --light-green: #ecf3ec;
+            --text-main: #333d29;
+            --text-muted: #a3b19b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-main);
+            padding: 20px;
+        }
+
+        .clock-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(79, 119, 45, 0.05);
+            padding: 35px 30px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            border: 1px solid rgba(144, 161, 133, 0.15);
+        }
+
+        /* 模拟钟盘 */
+        .analog-clock {
+            width: 180px;
+            height: 180px;
+            border: 4px solid var(--primary-green);
+            border-radius: 50%;
+            margin: 0 auto 25px auto;
+            position: relative;
+            background: var(--card-bg);
+            box-shadow: inset 0 4px 10px rgba(79, 119, 45, 0.03);
+        }
+
+        /* 刻度线 (12, 3, 6, 9) */
+        .analog-clock::before, .analog-clock::after {
+            content: '';
+            position: absolute;
+            background: var(--text-muted);
+            border-radius: 2px;
+        }
+        /* 12点和6点刻度 */
+        .analog-clock::before {
+            width: 4px;
+            height: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 4px;
+            box-shadow: 0 154px var(--text-muted);
+        }
+        /* 3点和9点刻度 */
+        .analog-clock::after {
+            width: 10px;
+            height: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 4px;
+            box-shadow: 154px 0 var(--text-muted);
+        }
+
+        /* 指针通用样式 */
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 4px;
+        }
+
+        .hour-hand {
+            width: 5px;
+            height: 45px;
+            background-color: var(--text-main);
+            margin-left: -2.5px;
+            z-index: 3;
+        }
+
+        .minute-hand {
+            width: 3.5px;
+            height: 65px;
+            background-color: var(--accent-green);
+            margin-left: -1.75px;
+            z-index: 2;
+        }
+
+        /* 丝滑绕圈的秒针 */
+        .second-hand {
+            width: 1.5px;
+            height: 75px;
+            background-color: var(--primary-green);
+            margin-left: -0.75px;
+            z-index: 1;
+        }
+
+        /* 中心轴帽 */
+        .center-cap {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary-green);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            border: 2px solid white;
+        }
+
+        /* 日期与时间文本信息 */
+        .date-info {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--accent-green);
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .digital-time {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-main);
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-card">
+        <div class="analog-clock">
+            <div class="hand hour-hand" id="hour"></div>
+            <div class="hand minute-hand" id="minute"></div>
+            <div class="hand second-hand" id="second"></div>
+            <div class="center-cap"></div>
+        </div>
+        
+        <div class="date-info" id="date-display">2026年05月26日 星期二</div>
+        <div class="digital-time" id="digital-display">12:00</div>
+    </div>
+
+    <script>
+        const hourHand = document.getElementById('hour');
+        const minuteHand = document.getElementById('minute');
+        const secondHand = document.getElementById('second');
+        const dateDisplay = document.getElementById('date-display');
+        const digitalDisplay = document.getElementById('digital-display');
+
+        const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+        function updateClock() {
+            const now = new Date();
+            
+            // 1. 计算指针角度（加入毫秒，实现高阶机械表丝滑扫秒效果）
+            const ms = now.getMilliseconds();
+            const secs = now.getSeconds() + ms / 1000;
+            const mins = now.getMinutes() + secs / 60;
+            const hrs = (now.getHours() % 12) + mins / 60;
+
+            const secDegrees = secs * 6;       // 360度 / 60秒 = 6度/秒
+            const minDegrees = mins * 6;       // 360度 / 60分 = 6度/分
+            const hourDegrees = hrs * 30;      // 360度 / 12小时 = 30度/小时
+
+            hourHand.style.transform = `rotate(${hourDegrees}deg)`;
+            minuteHand.style.transform = `rotate(${minDegrees}deg)`;
+            secondHand.style.transform = `rotate(${secDegrees}deg)`;
+
+            // 2. 更新数字时间（只显示时:分，让视觉更克制干净）
+            const dHours = now.getHours().toString().padStart(2, '0');
+            const dMinutes = now.getMinutes().toString().padStart(2, '0');
+            digitalDisplay.textContent = `${dHours}:${dMinutes}`;
+
+            // 3. 更新日期信息
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            const weekDay = weekDays[now.getDay()];
+            dateDisplay.textContent = `${year}年${month}月${day}日 ${weekDay}`;
+
+            // 使用 requestAnimationFrame 实现完美的 60FPS 丝滑动画
+            requestAnimationFrame(updateClock);
+        }
+
+        // 启动时钟
+        requestAnimationFrame(updateClock);
+    </script>
+</body>
+</html>
